@@ -21,7 +21,7 @@
     </div>
     <div class="playerCards">
       <p class="playerIndicator">
-        {{currentPlayer.name}}
+        {{ currentPlayer.name }}
       </p>
       <card
         v-for="(card, index) in currentPlayer.cards"
@@ -50,7 +50,7 @@ export default {
       cardStack: [],
       usedCards: [],
       currentPlayerIndex: 0,
-      playerCount: 2,
+      playerCount: 5,
       moveDone: false,
       players: [],
       showColorSelect: false,
@@ -77,10 +77,12 @@ export default {
       switch (card.type) {
         case "wild":
           this.showColorSelect = true;
+          this.moveDone = false;
           break;
 
         case "draw4":
           this.showColorSelect = true;
+          this.moveDone = false;
           this.cardsToDraw += 4;
           break;
 
@@ -137,8 +139,19 @@ export default {
     setColor(color) {
       this.lastPlayed.color = color;
       this.showColorSelect = false;
+      this.moveDone = true;
     },
-    reverseOrder() {},
+    reverseOrder() {
+      let arr = [this.currentPlayer];
+      for (let i = this.currentPlayerIndex - 1; i >= 0; i--) {
+        arr.push(this.players[i]);
+      }
+      for (let i = this.players.length - 1; i > this.currentPlayerIndex; i--) {
+        arr.push(this.players[i]);
+      }
+      this.currentPlayerIndex = 0;
+      this.players = arr;
+    },
     skipNextPlayer() {},
   },
   created() {
