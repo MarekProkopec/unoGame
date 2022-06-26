@@ -1,6 +1,16 @@
 <template>
-  <div class="card" :style="style">
-    <p class="cardContent number" v-if="data.type == 'number'">
+  <div
+    class="card"
+    :class="playable ? 'playable' : ''"
+    :style="style"
+    @click="$emit('click')"
+  >
+    <div class="back" v-if="!visible">
+      <div class="circle">
+        <p>UNO</p>
+      </div>
+    </div>
+    <p class="cardContent number" v-else-if="data.type == 'number'">
       {{ data.number }}
     </p>
     <div class="cardContent allColors" v-else-if="data.type == 'wild'">
@@ -28,7 +38,19 @@
 
 <script>
 export default {
-  props: ["data"],
+  props: {
+    data: {
+      type: Object,
+    },
+    visible: {
+      type: Boolean,
+      default: true,
+    },
+    playable: {
+      type: Boolean,
+      default: false,
+    },
+  },
   computed: {
     style() {
       const color = this.data.color;
@@ -61,13 +83,21 @@ export default {
 <style lang="scss">
 .card {
   $cardWidth: 150px;
-  $cardHeight: 250px;
+  $cardHeight: 220px;
   width: $cardWidth;
   height: $cardHeight;
+  user-select: none;
   border-radius: 8px;
   border: solid $cardHeight/25 rgba($color: #fff, $alpha: 1);
   box-shadow: 0 0 0 2px black;
-  cursor: pointer;
+  flex-shrink: 0;
+  flex-grow: 0;
+  transition: box-shadow 0.1s linear;
+
+  &.playable {
+    box-shadow: 0 0 2px 4px yellow;
+    cursor: pointer;
+  }
 
   position: relative;
 
@@ -139,10 +169,10 @@ export default {
     }
 
     &.draw4 {
-        background: white;
-        border-radius: 50%;
-        width: 80%;
-        height: 80%;
+      background: white;
+      border-radius: 50%;
+      width: 80%;
+      height: 80%;
       .smallCard {
         // Red
         &:first-child {
@@ -152,13 +182,13 @@ export default {
         }
         // Blue
         &:nth-child(2) {
-            z-index: 2;
+          z-index: 2;
           left: 15%;
           top: 20%;
         }
         // Yellow
         &:nth-child(3) {
-            z-index: 3;
+          z-index: 3;
           left: 60%;
           top: 10%;
         }
@@ -167,6 +197,34 @@ export default {
           left: 5%;
           top: 45%;
         }
+      }
+    }
+  }
+
+  .back {
+    height: 100%;
+    width: 100%;
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .circle {
+      background: #ed1c24;
+      border-radius: 50%;
+      height: 80%;
+      width: 90%;
+      transform: skew(-30deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      p {
+        color: #fff535;
+        font-size: 250%;
+        transform: rotateZ(-45deg);
+        font-weight: bolder;
       }
     }
   }

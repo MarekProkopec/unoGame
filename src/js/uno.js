@@ -5,7 +5,7 @@ const cardTypes = {
   skip: "skip",
   draw: "draw",
   draw4: "draw4",
-  wild: "wild"
+  wild: "wild",
 };
 
 const cardColors = {
@@ -59,5 +59,4 @@ for (let i = 0; i < 4; i++) {
   defaultCards.push(new Card(cardTypes.draw4));
 }
 
-
-export default defaultCards;
+export { defaultCards, cardTypes, cardColors, Card };
