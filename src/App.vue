@@ -2,21 +2,46 @@
   <div id="app">
     <colorselection @colorSelected="setColor" v-if="showColorSelect" />
     <div class="playfield">
+      <div class="notifications">
+        <div
+          class="cardsToDraw"
+          :class="cardsToDraw == 0 ? 'inactive' : 'active'"
+        >
+          <p>
+            Cards to draw: <span>{{ cardsToDraw }}</span>
+          </p>
+        </div>
+        <div
+          class="cardsToDraw"
+          :class="!nextPlayerSkipped ? 'inactive' : 'active'"
+        >
+          <p>
+            Skip card is on you
+          </p>
+        </div>
+      </div>
+
       <div class="drawStack">
         <card
           :visible="false"
-          :class="moveDone ? '' : 'active'"
+          :class="moveDone && !nextPlayerSkipped ? '' : 'active'"
           :data="cardStack[0]"
-          @click="drawCard()"
+          @click="drawCardFromDeck()"
         ></card>
         <p>Left: {{ cardStack.length }}</p>
       </div>
       <div class="playedCards">
         <card v-if="lastPlayed" :data="lastPlayed"></card>
-        <button @click="endTurn()" class="endTurn" :disabled="!moveDone">
-          <span>End turn</span>
-          <font-awesome-icon class="icon" icon="fa-solid fa-angles-right" />
-        </button>
+        <div class="actionButtons">
+          <button
+            @click="endTurn()"
+            class="endTurn"
+            :disabled="endTurnDisabled"
+          >
+            <span>End turn</span>
+            <font-awesome-icon class="icon" icon="fa-solid fa-angles-right" />
+          </button>
+        </div>
       </div>
     </div>
     <div class="playerCards">
@@ -56,6 +81,7 @@ export default {
       showColorSelect: false,
       cardsToDraw: 0,
       nextPlayerSkipped: false,
+      nextPlayerWillBeSkipped: false,
     };
   },
   computed: {
@@ -64,6 +90,16 @@ export default {
     },
     currentPlayer() {
       return this.players[this.currentPlayerIndex];
+    },
+    moveSkippable() {
+      return this.nextPlayerSkipped;
+    },
+    endTurnDisabled() {
+      if (this.moveSkippable) return false;
+      return !this.moveDone;
+    },
+    skipTurnDisabled() {
+      return !this.moveSkippable;
     },
   },
   methods: {
@@ -101,8 +137,27 @@ export default {
         default:
           break;
       }
+
+      if (this.currentPlayer.cards.length == 0) {
+        alert(`${this.currentPlayer.name} WON!`);
+      }
     },
-    drawCard() {
+    drawCardFromDeck() {
+      if (this.nextPlayerSkipped) return;
+      if (this.cardsToDraw == 0) {
+        this.drawCard();
+        return;
+      }
+
+      for (let i = 0; i < this.cardsToDraw; i++) {
+        setTimeout(() => {
+          this.drawCard(false);
+        }, i * 100);
+      }
+      this.cardsToDraw = 0;
+    },
+    drawCard(needsMove = true) {
+      if (needsMove && this.moveDone) return;
       this.currentPlayer.cards.push(this.cardStack.pop());
       if (this.cardStack.length == 0) {
         this.shuffleUsedCards();
@@ -110,6 +165,22 @@ export default {
       this.moveDone = true;
     },
     isPlayable(card) {
+      if (this.nextPlayerSkipped) {
+        return card.type == "skip";
+      }
+
+      if (this.cardsToDraw != 0) {
+        if (card.type == "draw4") return true;
+        if (card.type == "draw") {
+          if (
+            card.color == this.lastPlayed.color ||
+            this.lastPlayed.type == "draw"
+          )
+            return true;
+        }
+        return false;
+      }
+
       if (["wild", "draw4"].includes(card.type)) return true;
 
       if (card.color == this.lastPlayed.color) return true;
@@ -122,19 +193,29 @@ export default {
     },
     shuffleUsedCards() {
       if (this.usedCards.length < 2) return;
-      console.log(this.usedCards);
-      this.cardStack = [...this.usedCards];
+      this.cardStack = this.shuffleArray([...this.usedCards]);
       this.usedCards = [this.cardStack.pop()];
-      console.log(this.cardStack);
-      console.log(this.usedCards);
     },
     endTurn() {
+      this.nextPlayerSkipped = false;
+      if (this.nextPlayerWillBeSkipped) this.nextPlayerSkipped = true;
+      this.nextPlayerWillBeSkipped = false;
       this.moveDone = false;
       if (this.currentPlayerIndex > this.playerCount - 2) {
         this.currentPlayerIndex = 0;
         return;
       }
       this.currentPlayerIndex++;
+      this.startTurn();
+    },
+    startTurn() {
+      // Need to handle if player doesn't want to play, even if he has stop card
+      // Mby skip turn button
+      if (this.nextPlayerSkipped) {
+        if (!this.currentPlayer.cards.find((e) => e.type == "skip")) {
+          this.moveDone = true;
+        }
+      }
     },
     setColor(color) {
       this.lastPlayed.color = color;
@@ -152,9 +233,12 @@ export default {
       this.currentPlayerIndex = 0;
       this.players = arr;
     },
-    skipNextPlayer() {},
+    skipNextPlayer() {
+      this.nextPlayerWillBeSkipped = true;
+    },
   },
   created() {
+    this.playerCount = Number(prompt("How many players will be playing?"));
     for (let i = 0; i < this.playerCount; i++) {
       this.players.push({
         name: `Player ${i + 1}`,
@@ -163,7 +247,13 @@ export default {
     }
 
     this.cardStack = this.shuffleArray(defaultCards);
-    this.usedCards.push(this.cardStack.pop());
+    let firstCard = this.cardStack.pop();
+    if (firstCard.color == "#000000") {
+      firstCard.color = ["#D72600", "#ECD407", "#0956BF", "#379711"][
+        Math.floor(Math.random() * 4)
+      ];
+    }
+    this.usedCards.push(firstCard);
 
     for (let playerNum = 0; playerNum < this.playerCount; playerNum++) {
       for (let i = 0; i < 5; i++) {
@@ -223,42 +313,87 @@ export default {
     .playedCards {
       position: relative;
 
-      button.endTurn {
+      .actionButtons {
         position: absolute;
         right: 0;
         bottom: 0;
         margin: 10px;
-        font-size: 1.4rem;
-        outline: none;
-        padding: 8px 16px;
+        display: flex;
+        gap: 10px;
 
-        background: #3ec70b;
-        color: black;
+        button {
+          font-size: 1.4rem;
+          outline: none;
+          padding: 8px 16px;
 
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s linear;
+          background: #3ec70b;
+          color: black;
 
-        .icon {
-          opacity: 0;
-          width: 0px;
-
-          display: inline-flex;
-
+          border-radius: 8px;
+          cursor: pointer;
           transition: all 0.2s linear;
-        }
 
-        &:hover:not(:disabled) {
+          &.skipTurn {
+            background: #ffb562;
+
+            &:disabled {
+              background: #a88154;
+              color: rgba(255, 255, 255, 0.3);
+            }
+          }
+
           .icon {
-            opacity: 1;
-            width: 30px;
+            opacity: 0;
+            width: 0px;
+
+            display: inline-flex;
+
+            transition: all 0.2s linear;
+          }
+
+          &:hover:not(:disabled) {
+            .icon {
+              opacity: 1;
+              width: 30px;
+            }
+          }
+
+          &:disabled {
+            cursor: unset;
+            background: #26640f;
+            color: rgba(255, 255, 255, 0.3);
           }
         }
+      }
+    }
+    .notifications {
+      position: absolute;
+      left: 50%;
+      top: 20px;
+      transform: translateX(-50%);
 
-        &:disabled {
-          cursor: unset;
-          background: #26640f;
-          color: rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      .cardsToDraw {
+        background: #ffb562;
+        border: solid 4px #ffa136;
+        color: #000;
+        padding: 8px 16px;
+        border-radius: 8px;
+        display: flex;
+        transition: all 0.15s linear;
+        opacity: 1;
+
+        &.inactive {
+          opacity: 0;
+        }
+
+        p {
+          span {
+            font-weight: bolder;
+          }
         }
       }
     }
