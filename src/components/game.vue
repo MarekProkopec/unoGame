@@ -67,6 +67,10 @@ import colorselection from "./colorselection.vue";
 
 import { defaultCards } from "../js/uno";
 
+const handlePageExit = (event) => {
+  event.returnValue = `Are you sure you want to leave? You will lose your game progress`;
+};
+
 export default {
   name: "uno",
   components: { card, colorselection },
@@ -127,7 +131,7 @@ export default {
   },
   methods: {
     playCard(index) {
-      if(this.moveDone) return;
+      if (this.moveDone) return;
       const card = this.currentPlayer.cards[index];
       if (!this.isPlayable(card)) return;
       this.usedCards.push(card);
@@ -261,7 +265,12 @@ export default {
       this.nextPlayerWillBeSkipped = true;
     },
   },
+  destroyed() {
+    window.removeEventListener("beforeunload", handlePageExit);
+  },
   created() {
+    window.addEventListener("beforeunload", handlePageExit);
+
     this.playerCount = this.selectedNumberOfPlayers;
     for (let i = 0; i < this.playerCount; i++) {
       this.players.push({
