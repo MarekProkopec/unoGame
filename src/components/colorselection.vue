@@ -30,7 +30,7 @@ export default {
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .colorSelection {
   z-index: 100;
   position: absolute;

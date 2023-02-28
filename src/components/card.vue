@@ -80,7 +80,7 @@ export default {
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .card {
   $cardWidth: 150px;
   $cardHeight: 220px;
